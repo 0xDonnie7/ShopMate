@@ -8,6 +8,7 @@ import RootLayout from './layouts/RootLayout';
 import AuthLayout from './layouts/AuthLayout';
 import Signup from './pages/Signup';
 import './Index.css'
+import "./App.css";
 
 
 const router = createBrowserRouter([
