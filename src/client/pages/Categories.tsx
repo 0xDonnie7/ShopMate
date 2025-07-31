@@ -1,6 +1,6 @@
 const Categories = () => {
     return (
-        <h1 className="text-3xl font-bold underline">Categories</h1>
+        <h1 className="h-screen text-3xl font-bold underline">Categories</h1>
     )
 }
 

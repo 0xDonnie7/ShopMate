@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 const NavBar = () => {
     return (
-        <nav className="bg-gray-800 text-white p-4">
+        <nav className="sticky top-0 z-50 bg-gray-800 text-white p-4 mb-10 shadow-lg">
             <ul className="w-3/4 mx-auto flex items-center gap-9">
                 <li className="flex-none text-2xl font-bold tracking-wide text-white hover:text-blue-400 transition-colors font-poetsen"><Link to="/">SHOPMATE</Link></li>
                 <li className="flex-none font-kanit"><Link to="/products">Products</Link></li>

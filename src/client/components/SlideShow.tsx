@@ -48,7 +48,7 @@ const Home = () => {
     const current = slides[index];
 
     return (
-        <div className="w-full max-w-7xl mx-auto mt-10 p-6 bg-gray-600 rounded-xl shadow-md relative transition-all duration-500">
+        <div className="w-full mx-auto p-6 bg-gray-600 rounded-xl shadow-md relative transition-all duration-500">
             <AnimatePresence mode="wait">
                 <motion.div
                     key={current.id}
@@ -58,7 +58,7 @@ const Home = () => {
                     transition={{ duration: 0.4 }}
                     className="px-6 py-4"
                 >
-                    <h2 className="text-2xl font-bold mb-2 text-white">{current.title}</h2>
+                    <h2 className="font-bold mb-2 text-white">{current.title}</h2>
                     <p className="mb-4 text-white">{current.description}</p>
                     <button className="px-4 py-2 bg-white text-gray-600 rounded hover:bg-gray-400 transition-colors duration-300">
                         {current.action}

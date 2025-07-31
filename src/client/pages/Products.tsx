@@ -1,6 +1,8 @@
 const Products = () => {
     return (
-        <h1>Products</h1>
+        <section className="h-screen">
+
+        </section>
     )
 }
 
