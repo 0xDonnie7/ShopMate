@@ -1,54 +1,68 @@
 const express = require('express');
-const app = express();
 const mongoose = require('mongoose');
-const user = require('../models/Users');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const User = require('../models/Users');
 
-const register = async(req, res) => {
-  try{
+// Token functions
+const createAccessToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_ACCESS_SECRET, 
+    { expiresIn: '15m' }
+  );
+};
+
+const createRefreshToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET, 
+    { expiresIn: '7d' }
+  );
+};
+
+// REGISTER
+const register = async (req, res) => {
+  try {
     const { firstname, lastname, email, password } = req.body;
-  const newUser = new user({firstname, lastname, email, password}); 
-  await newUser.save();
-  res.status(200).json({'msg': 'user created successfully'})
-
+    const newUser = new User({ firstname, lastname, email, password }); 
+    await newUser.save();
+    res.status(200).json({ msg: 'User created successfully' });
   } catch (error) {
-    console.error(error)
-    res.json({"error": "failed to register"});
+    console.error(error);
+    res.json({ error: 'Failed to register' });
   }
-  
+};
 
-}
-
+// LOGIN
 const login = async (req, res) => {
-  try{
+  try {
     const { email, password }  = req.body;
-    const useremail = await user.findOne({email});
+    const useremail = await User.findOne({ email });
 
     if (!useremail) {
-      return { message: 'User not found'}
+      return res.status(404).json({ message: 'User not found' });
     }
 
     const isMatch = await bcrypt.compare(password, useremail.password);
-    if(!isMatch){
-      return res.status(404).json({ 'message': 'invalid password'})
+    if (!isMatch) {
+      return res.status(404).json({ message: 'Invalid password' });
     }
 
+    // Create tokens
+    const accessToken = createAccessToken(useremail._id);
+    const refreshToken = createRefreshToken(useremail._id);
 
-    //jwt
-     const accessToken = createAccessToken(user._id);
-    const refreshToken = createRefreshToken(user._id);
+    // Save refresh token to DB
+    useremail.refreshToken = refreshToken;
+    await useremail.save();
 
-    // save refresh token to DB 
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    // set cookies
+    // Set cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 15 * 60 * 1000, 
+      maxAge: 15 * 60 * 1000,
       path: '/',
     });
 
@@ -56,25 +70,23 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
 
-   
-    return res.json({ message: 'Login successful', user: { id: user._id, email: user.email } });
+    return res.json({ message: 'Login successful', user: { id: useremail._id, email: useremail.email } });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Login failed' });
   }
 };
 
-// REFRESH: rotate refresh token and return new tokens
+// REFRESH
 const refresh = async (req, res) => {
   try {
     const token = req.cookies?.refreshToken;
     if (!token) return res.sendStatus(401);
 
-    // verify refresh token
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -84,19 +96,15 @@ const refresh = async (req, res) => {
 
     const user = await User.findById(payload.id);
     if (!user || user.refreshToken !== token) {
-      // refresh token not recognized 
       return res.sendStatus(403);
     }
 
-    // rotate: issue new refresh token and new access token
     const newAccessToken = createAccessToken(user._id);
     const newRefreshToken = createRefreshToken(user._id);
 
-    // persist new refresh token
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    // set cookies (overwrites old ones)
     res.cookie('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -120,19 +128,17 @@ const refresh = async (req, res) => {
   }
 };
 
-// LOGOUT: clear cookies and remove refresh token 
+// LOGOUT
 const logout = async (req, res) => {
   try {
     const token = req.cookies?.refreshToken;
     if (token) {
-      // decode to find user id 
       const payload = jwt.decode(token);
       if (payload?.id) {
         await User.findByIdAndUpdate(payload.id, { $unset: { refreshToken: "" } });
       }
     }
 
-    // clear cookies client-side
     res.clearCookie('accessToken', { path: '/' });
     res.clearCookie('refreshToken', { path: '/' });
 
